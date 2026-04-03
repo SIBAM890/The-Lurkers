@@ -212,6 +212,7 @@ body {
     flex-grow: 1;
     padding: 1.5rem;
     overflow: auto;
+    min-height: 0; /* Forces flex child to scroll */
 }
 
 .code-editor {
