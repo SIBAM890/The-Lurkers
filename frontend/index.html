@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollhouse Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <h2>Ops<span>OS</span></h2>
+                <div class="status-indicator">
+                    <span class="pulse"></span> System Online
+                </div>
+            </div>
+            
+            <nav class="nav-links">
+                <button class="nav-item active" data-target="ps01">🚀 PS-01: Onboarding</button>
+                <button class="nav-item" data-target="ps02">💡 PS-02: Brief Pipeline</button>
+                <button class="nav-item" data-target="ps03">✅ PS-03: Approval Loop</button>
+                <button class="nav-item" data-target="ps03-reply">↩️ PS-03: Client Reply</button>
+                <button class="nav-item" data-target="ps04">📊 PS-04: Reporting</button>
+            </nav>
+            
+            <div class="system-stats">
+                <p>Endpoint: <code>localhost:8000</code></p>
+                <p>Latency: <span id="ping-time">12ms</span></p>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            
+            <!-- Left Pane: Input -->
+            <section class="input-pane glass-panel">
+                <header class="pane-header">
+                    <h3 id="form-title">PS-01: Onboarding Agent</h3>
+                    <button id="run-btn" class="glow-btn">Execute Agent</button>
+                </header>
+                
+                <div class="editor-container">
+                    <textarea id="json-input" class="code-editor" spellcheck="false"></textarea>
+                </div>
+            </section>
+
+            <!-- Right Pane: Output -->
+            <section class="output-pane glass-panel">
+                <header class="pane-header">
+                    <h3>Terminal Output</h3>
+                    <div class="window-controls">
+                        <span></span><span></span><span></span>
+                    </div>
+                </header>
+                
+                <div class="console-container">
+                    <pre><code id="json-output">Ready for execution. Waiting for input...</code></pre>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Agent Completed Successfully</div>
+
+    <script src="app.js"></script>
+</body>
+</html>

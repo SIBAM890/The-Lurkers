@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any
 import uvicorn
@@ -8,6 +9,15 @@ from core.runner import run_agent
 from core.logger import get_logger
 
 app = FastAPI(title="Scrollhouse Agent API", version="1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 logger = get_logger()
 
 class AgentRequest(BaseModel):
