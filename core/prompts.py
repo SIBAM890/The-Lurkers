@@ -92,3 +92,20 @@ Also output a health label: "Strong Month", "On Track", or "Needs Attention"
 Return as JSON with keys: narrative, recommendations (list), health_label
 Return only valid JSON, no markdown.
 """
+
+RESPONSE_EVALUATION_PROMPT = """
+You are an AI assistant for Scrollhouse. Evaluate the client's response to a content script.
+Client Response: {client_response}
+
+Determine the intent and return a JSON object with these exact keys:
+- intent: one of "approved", "revision_requested", "escalate" (if they ask for a call or are confused/mismatched version)
+- revision_notes: The requested changes, if intent is revision_requested. Extract only the revision parts. Otherwise, null.
+
+Edge case guidelines:
+- "looks good", "👍", "perfect", "approved" -> "approved"
+- "looks good but change the outro" -> "revision_requested", notes: "change the outro"
+- "let's jump on a call" -> "escalate"
+- "this doesn't match the script you sent yesterday" -> "escalate"
+
+Return only valid JSON, no markdown.
+"""

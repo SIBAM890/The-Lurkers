@@ -13,6 +13,11 @@ logger = get_logger()
 class AgentRequest(BaseModel):
     data: dict
 
+class WebhookRequest(BaseModel):
+    thread_id: str
+    message: str = None
+    is_timeout: bool = False
+
 @app.get("/")
 def health_check():
     return {"status": "running", "agents": ["ps01", "ps02", "ps03", "ps04"]}
@@ -64,6 +69,7 @@ def run_ps02(request: AgentRequest):
 @app.post("/ps03")
 def run_ps03(request: AgentRequest):
     from agents.ps03_approval_loop import build_ps03_graph
+    thread_id = request.data.get("thread_id", f"PS03_{datetime.now().timestamp()}")
     graph = build_ps03_graph()
     initial_state = {
         "ps_id": "PS-03",
@@ -81,7 +87,21 @@ def run_ps03(request: AgentRequest):
         "max_loops": 0,
         **request.data
     }
-    return run_agent(graph, initial_state, "PS-03")
+    return run_agent(graph, initial_state, "PS-03", thread_id=thread_id, interrupt_before=["process_response"])
+
+@app.post("/ps03/reply")
+def ps03_reply(req: WebhookRequest):
+    from agents.ps03_approval_loop import build_ps03_graph
+    from core.runner import resume_agent
+    graph = build_ps03_graph()
+    
+    update_data = {}
+    if req.is_timeout:
+        update_data = {"output": {"timeout": True}}
+    elif req.message:
+        update_data = {"output": {"client_response": req.message}}
+        
+    return resume_agent(graph, req.thread_id, "PS-03", update_state=update_data)
 
 @app.post("/ps04")
 def run_ps04(request: AgentRequest):

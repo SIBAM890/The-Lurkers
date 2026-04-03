@@ -1,12 +1,12 @@
+import json
 from langgraph.graph import StateGraph, END
 from core.state import ApprovalState
 from core.tools import (
     send_email, send_slack_message, update_airtable_record, log_event
 )
 from core.llm import get_llm
-from core.prompts import APPROVAL_MESSAGE_PROMPT, FOLLOW_UP_PROMPT
+from core.prompts import APPROVAL_MESSAGE_PROMPT, FOLLOW_UP_PROMPT, RESPONSE_EVALUATION_PROMPT
 from datetime import datetime, timedelta
-import random
 
 def prepare_approval_request(state: ApprovalState) -> dict:
     llm = get_llm()
@@ -40,40 +40,51 @@ def send_approval_request(state: ApprovalState) -> dict:
     log_event(state.get("ps_id", "PS-03"), "approval_request_sent", {"version": state.get("version_number")})
     return {"steps_completed": state.get("steps_completed", []) + ["send_approval_request"]}
 
-def wait_for_response(state: ApprovalState) -> dict:
-    # MOCK RESPONSE
-    response = random.choices(["approved", "revision_requested", "no_response"], weights=[0.5, 0.3, 0.2])[0]
-    return {
-        "output": {**state.get("output", {}), "mock_response": response},
-        "steps_completed": state.get("steps_completed", []) + ["wait_for_response"]
-    }
-
 def process_response(state: ApprovalState) -> dict:
-    response = state.get("output", {}).get("mock_response", "no_response")
+    # Check if a client response was injected via state update or if it's a timeout
+    client_response = state.get("output", {}).get("client_response")
+    timeout = state.get("output", {}).get("timeout", False)
+    
     approval_status = state.get("approval_status", "pending")
     status = state.get("status", "running")
     version_number = state.get("version_number", 1)
     follow_up_count = state.get("follow_up_count", 0)
     revision_notes = state.get("revision_notes")
-    
     max_loops = state.get("max_loops", 0)
     
     if max_loops >= 5:
         approval_status = "escalated"
-    else:
-        if response == "approved":
+        return {"approval_status": approval_status, "status": "completed"}
+        
+    if timeout:
+        follow_up_count += 1
+        if follow_up_count >= 2:
+            approval_status = "escalated"
+        else:
+            approval_status = "pending"
+    elif client_response:
+        # Pass to LLM using RESPONSE_EVALUATION_PROMPT
+        llm = get_llm()
+        prompt = RESPONSE_EVALUATION_PROMPT.format(client_response=client_response)
+        res = llm.invoke(prompt)
+        
+        try:
+            parsed = json.loads(res.content.replace("```json", "").replace("```", "").strip())
+            intent = parsed.get("intent", "revision_requested")
+            notes = parsed.get("revision_notes")
+        except:
+            intent = "escalate"
+            notes = None
+            
+        if intent == "approved":
             approval_status = "approved"
             status = "completed"
-        elif response == "revision_requested":
-            revision_notes = "Please shorten the hook"
+        elif intent == "revision_requested":
+            revision_notes = notes
             version_number += 1
             approval_status = "revision_requested"
-        elif response == "no_response":
-            follow_up_count += 1
-            if follow_up_count >= 2:
-                approval_status = "escalated"
-            else:
-                approval_status = "pending"
+        elif intent == "escalate":
+            approval_status = "escalated"
 
     return {
         "approval_status": approval_status,
@@ -81,6 +92,7 @@ def process_response(state: ApprovalState) -> dict:
         "version_number": version_number,
         "follow_up_count": follow_up_count,
         "revision_notes": revision_notes,
+        "output": {**state.get("output", {}), "client_response": None, "timeout": False}, # Reset flags
         "steps_completed": state.get("steps_completed", []) + ["process_response"]
     }
 
@@ -110,7 +122,7 @@ def escalate(state: ApprovalState) -> dict:
     send_email(
         "manager@scrollhouse.com",
         f"Escalation: {state.get('client_name')} Script Approval",
-        f"Approval looped {state.get('max_loops')} times or max follow ups reached."
+        f"Approval looped {state.get('max_loops')} times or max follow ups reached or client requested a call."
     )
     return {"status": "escalated", "steps_completed": state.get("steps_completed", []) + ["escalate"]}
 
@@ -138,7 +150,7 @@ def route_after_response(state: ApprovalState) -> str:
     elif ans == "escalated":
         return "escalate"
     else:
-        # no response
+        # pending (timeout scenario)
         if state.get("follow_up_count", 0) < 2:
             return "send_follow_up"
         else:
@@ -149,7 +161,6 @@ def build_ps03_graph() -> StateGraph:
     
     graph.add_node("prepare_approval_request", prepare_approval_request)
     graph.add_node("send_approval_request", send_approval_request)
-    graph.add_node("wait_for_response", wait_for_response)
     graph.add_node("process_response", process_response)
     graph.add_node("send_follow_up", send_follow_up)
     graph.add_node("escalate", escalate)
@@ -159,8 +170,9 @@ def build_ps03_graph() -> StateGraph:
     graph.set_entry_point("prepare_approval_request")
     
     graph.add_edge("prepare_approval_request", "send_approval_request")
-    graph.add_edge("send_approval_request", "wait_for_response")
-    graph.add_edge("wait_for_response", "process_response")
+    # Instead of wait_for_response, we transition right to process_response
+    # But during run_agent we will use interrupt_before=["process_response"]
+    graph.add_edge("send_approval_request", "process_response")
     
     graph.add_conditional_edges("process_response", route_after_response, {
         "update_tracker": "update_tracker",
@@ -169,7 +181,7 @@ def build_ps03_graph() -> StateGraph:
         "escalate": "escalate"
     })
     
-    graph.add_edge("send_follow_up", "wait_for_response")
+    graph.add_edge("send_follow_up", "process_response")
     
     graph.add_edge("escalate", "update_tracker")
     graph.add_edge("update_tracker", "log_approval")
