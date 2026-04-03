@@ -177,8 +177,8 @@ runBtn.addEventListener('click', async () => {
         // Handle LangSmith Run Configuration
         if (data.run_id) {
             currentRunId = data.run_id;
-            // The LangSmith trace URL format for a specific project run
-            const lsUrl = `https://smith.langchain.com/o/default/projects/p/runs/${currentRunId}?project_name=scrollhouse`;
+            // Native trace URL using the exact Personal Organization ID from the screenshot 
+            const lsUrl = `https://smith.langchain.com/o/93e09d21-e600-4cfe-ab39-b4c2b6cf7b19/projects/p/runs/${currentRunId}?project_name=scrollhouse`;
             lsTraceLink.href = lsUrl;
             langsmithPanel.classList.remove('hidden');
         } else {
