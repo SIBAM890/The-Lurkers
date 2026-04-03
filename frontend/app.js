@@ -70,8 +70,13 @@ const jsonInput = document.getElementById('json-input');
 const jsonOutput = document.getElementById('json-output');
 const runBtn = document.getElementById('run-btn');
 const toast = document.getElementById('toast');
+const langsmithPanel = document.getElementById('langsmith-panel');
+const lsTraceLink = document.getElementById('ls-trace-link');
+const lsBtnUp = document.getElementById('ls-btn-up');
+const lsBtnDown = document.getElementById('ls-btn-down');
 
 let currentActive = 'ps01';
+let currentRunId = null;
 
 // Syntax highlighting mapping
 function syntaxHighlight(json) {
@@ -169,8 +174,19 @@ runBtn.addEventListener('click', async () => {
         
         const data = await res.json();
         
+        // Handle LangSmith Run Configuration
+        if (data.run_id) {
+            currentRunId = data.run_id;
+            // The LangSmith trace URL format for a specific project run
+            const lsUrl = `https://smith.langchain.com/o/default/projects/p/runs/${currentRunId}?project_name=scrollhouse`;
+            lsTraceLink.href = lsUrl;
+            langsmithPanel.classList.remove('hidden');
+        } else {
+            langsmithPanel.classList.add('hidden');
+        }
+        
         // Typewriter reveal
-        typeWriterEffect(JSON.stringify(data, null, 4), jsonOutput, 2);
+        typeWriterEffect(JSON.stringify(data.agent_state || data, null, 4), jsonOutput, 2);
         
         // Toast
         toast.classList.add('show');
@@ -180,6 +196,34 @@ runBtn.addEventListener('click', async () => {
         jsonOutput.innerHTML = `<span style='color:red'>Connection Refused: Are you sure FastAPI is running on port 8000?\n\nError: ${err.message}</span>`;
     } finally {
         runBtn.style.opacity = '1';
-        runBtn.innerText = 'Execute Agent';
+        runBtn.innerText = 'EXECUTE // AGENT';
     }
 });
+
+// Feedback handlers
+async function sendFeedback(score) {
+    if (!currentRunId) return;
+    
+    try {
+        await fetch(`http://localhost:8000/feedback`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                run_id: currentRunId,
+                score: score,
+                comment: "Submitted via OpsOS Dashboard"
+            })
+        });
+        toast.innerText = "Feedback Logged to LangSmith!";
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.innerText = "Agent Completed Successfully";
+        }, 3000);
+    } catch(err) {
+        console.error("Failed to send feedback", err);
+    }
+}
+
+lsBtnUp.addEventListener('click', () => sendFeedback(1));
+lsBtnDown.addEventListener('click', () => sendFeedback(0));

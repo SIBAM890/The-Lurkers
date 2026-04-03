@@ -41,8 +41,8 @@
             <!-- Left Pane: Input -->
             <section class="input-pane glass-panel">
                 <header class="pane-header">
-                    <h3 id="form-title">PS-01: Onboarding Agent</h3>
-                    <button id="run-btn" class="glow-btn">Execute Agent</button>
+                    <h3 id="form-title" class="glitch-text">PS-01: Onboarding Agent</h3>
+                    <button id="run-btn" class="cyber-btn primary">EXECUTE // AGENT</button>
                 </header>
                 
                 <div class="editor-container">
@@ -62,6 +62,22 @@
                 <div class="console-container">
                     <pre><code id="json-output">Ready for execution. Waiting for input...</code></pre>
                 </div>
+
+                <!-- LangSmith Action Menu -->
+                <div id="langsmith-panel" class="langsmith-panel hidden">
+                    <div class="ls-branding">
+                        <span class="ls-icon">🦜🔗</span> LangSmith Trace Captured
+                    </div>
+                    <div class="ls-actions">
+                        <a id="ls-trace-link" href="#" target="_blank" class="cyber-btn sm">View Trace</a>
+                        <div class="ls-feedback">
+                            <span>Rate Output:</span>
+                            <button id="ls-btn-up" class="feedback-btn" title="Thumbs Up">👍</button>
+                            <button id="ls-btn-down" class="feedback-btn" title="Thumbs Down">👎</button>
+                        </div>
+                    </div>
+                </div>
+
             </section>
             
         </main>

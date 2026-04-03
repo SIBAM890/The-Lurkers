@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -27,6 +30,11 @@ class WebhookRequest(BaseModel):
     thread_id: str
     message: str = None
     is_timeout: bool = False
+
+class FeedbackRequest(BaseModel):
+    run_id: str
+    score: int 
+    comment: str = ""
 
 @app.get("/")
 def health_check():
@@ -116,7 +124,22 @@ def ps03_reply(req: WebhookRequest):
 @app.post("/ps04")
 def run_ps04(request: AgentRequest):
     from agents.ps04_reporting import ps04_reporting_agent
-    return ps04_reporting_agent(request.data)
+    return {"agent_state": ps04_reporting_agent(request.data), "run_id": None}
+
+@app.post("/feedback")
+def submit_feedback(req: FeedbackRequest):
+    from langsmith import Client
+    try:
+        client = Client()
+        client.create_feedback(
+            req.run_id,
+            key="user_rating",
+            score=req.score,
+            comment=req.comment
+        )
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
