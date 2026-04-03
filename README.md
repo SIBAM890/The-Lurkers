@@ -17,7 +17,8 @@
   * **PS-02**: Content & Brief Generation Pipeline
   * **PS-03**: Iterative Approval Loop & Quality Assurance
   * **PS-04**: Analytics & Automated Reporting
-* **💡 AI Powered**: Harnesses the power of Langchain and Google GenAI for dynamic and intelligent decision-making.
+* **💡 LangSmith Observability**: Real-time trace capturing and native user-feedback loop rating endpoints.
+* **💡 AI Powered**: Harnesses the power of Langchain and the latest 2026 Google GenAI models for dynamic and intelligent decision-making.
 
 ---
 
@@ -40,6 +41,10 @@ graph TD
         API -->|/ps02| PS02[💡 PS-02 Brief Pipeline]:::agent
         API -->|/ps03| PS03[✅ PS-03 Approval Loop]:::agent
         API -->|/ps04| PS04[📊 PS-04 Reporting]:::agent
+    end
+    
+    subgraph Frontend [💻 OpsOS Cyberpunk HUD]
+        API <-.->|REST / Traces| UI[🌐 App.js + Index.html]
     end
 
     subgraph Core [⚙️ Core Engine]
@@ -98,6 +103,10 @@ The-Lurkers/
 │   ├── state.py             # Agent state class declarations
 │   ├── tools.py             # External mock actions and tools
 │   └── logger.py            # Console output tracing
+├── frontend/                # OpsOS Cyberpunk Dashboard
+│   ├── index.html           # Main UI Layout
+│   ├── style.css            # Custom Styling
+│   └── app.js               # API Fetch & LangSmith Routing
 ├── main.py                  # Endpoints initialization via FastAPI
 └── requirements.txt         # Project pip dependencies
 ```
@@ -116,7 +125,17 @@ After ensuring your environment, install the necessary project requirements:
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Spinning up the Server
+### 3️⃣ Environment Variables
+Create a `.env` file in the root directory to store your keys securely:
+
+```env
+GOOGLE_API_KEY="your_gemini_key"
+LANGSMITH_API_KEY="your_langsmith_key"
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=scrollhouse
+```
+
+### 4️⃣ Spinning up the Server
 Start the development server using `uvicorn`:
 
 ```bash
