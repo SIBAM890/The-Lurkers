@@ -19,7 +19,7 @@ WRITER_ROSTER = {
 }
 
 def get_vector_store():
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
     docs = [
         Document(page_content="Brand: GlowSkin. Category: Skincare. Tone of voice: Authentic, empowering, not salesy. Focus on real results and scientific ingredients like Vitamin C and Hyaluronic Acid.", metadata={"brand": "GlowSkin"}),
         Document(page_content="Brand: TechFlow. Category: SaaS. Tone: Professional, crisp, innovative. Focus on productivity and saving time. Avoid jargon.", metadata={"brand": "TechFlow"}),
